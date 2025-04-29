@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35806.99
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "usbc_rotator", "usbc_rotator\usbc_rotator.vcxproj", "{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+		USBC_rotator|ARM64 = USBC_rotator|ARM64
+		USBC_rotator|x64 = USBC_rotator|x64
+		USBC_rotator|x86 = USBC_rotator|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Debug|ARM64.Build.0 = Debug|ARM64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Debug|x64.ActiveCfg = Debug|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Debug|x64.Build.0 = Debug|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Debug|x86.ActiveCfg = Debug|Win32
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Debug|x86.Build.0 = Debug|Win32
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Release|ARM64.ActiveCfg = Release|ARM64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Release|ARM64.Build.0 = Release|ARM64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Release|x64.ActiveCfg = Release|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Release|x64.Build.0 = Release|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Release|x86.ActiveCfg = Release|Win32
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.Release|x86.Build.0 = Release|Win32
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.USBC_rotator|ARM64.ActiveCfg = USBC_rotator|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.USBC_rotator|ARM64.Build.0 = USBC_rotator|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.USBC_rotator|x64.ActiveCfg = USBC_rotator|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.USBC_rotator|x64.Build.0 = USBC_rotator|x64
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.USBC_rotator|x86.ActiveCfg = USBC_rotator|Win32
+		{BAB13C25-7CA8-4DBB-89C4-07CBC6B4AA40}.USBC_rotator|x86.Build.0 = USBC_rotator|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1A52A010-4E78-44B9-A872-B4503D4E7A65}
+	EndGlobalSection
+EndGlobal
