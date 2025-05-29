@@ -1,49 +1,67 @@
 #include <Windows.h>
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 #include <fstream>
 #include <string>
-#include <sstream>
-//#include <vector>
+#include <vector>
 
 using namespace std;
 
 
 
 // using a function to authomatize returning hex sector
-//string get_sectors(ifstream& file, unsigned long long counter, unsigned char format_sample, int sectors_amount) { 
+//string GetSectors(ifstream& file, unsigned long long counter, unsigned char formatSample, int sectorsAmount) { 
 //
 //    char byte[3] = { 0 };
-//    string sectors_hex = "";
+//    string sectorsHex = "";
 //
-//    for (int i = 0; i < sectors_amount; i++) {
+//    for (int i = 0; i < sectorsAmount; i++) {
 //
 //        for (int j = 0; j < 512; j++) {
 //
 //            file.seekg(counter + (i * 512) + j);
-//            file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-//            sprintf_s(byte, "%02x", format_sample);
+//            file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+//            sprintf_s(byte, "%02x", formatSample);
 //
 //            sectors_hex.append(byte);
 //        }
 //
 //    }
 //
-//    return sectors_hex;
+//    return sectorsHex;
 //};
 
 
+// Function to convert a buffer to a hexadecimal string
+string BufferToHex(const BYTE* buffer, DWORD size) {
+    stringstream hexStream;
+    for (DWORD i = 0; i < size; ++i) {
+        hexStream << hex << setw(2) << setfill('0') << static_cast<int>(buffer[i]);
+    }
+    return hexStream.str();
+}
+
+// Function to convert a hexadecimal string back to a binary buffer
+void HexToBuffer(const string& hexString, BYTE* buffer, DWORD size) {
+    for (DWORD i = 0; i < size; ++i) {
+        string byteString = hexString.substr(i * 2, 2);
+        buffer[i] = static_cast<BYTE>(stoi(byteString, nullptr, 16));
+    }
+}
+
 // using a function to authomatize comparation process for usbc hex values
-bool check_Nth(ifstream& file, unsigned long long counter, unsigned char format_sample, int byte_position) {
+bool Check_Nth(ifstream& file, unsigned long long counter, unsigned char formatSample, int bytePosition) {
 
     char Nth[3] = { 0 };
 
 
-    file.seekg(counter + (byte_position - 1));
-    file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-    sprintf_s(Nth, "%02x", format_sample);
+    file.seekg(counter + (bytePosition - 1));
+    file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+    sprintf_s(Nth, "%02x", formatSample);
     file.seekg(counter);
 
-    switch (byte_position) {
+    switch (bytePosition) {
         case 1: return strncmp(Nth, "55", 2); break;
         case 2: return strncmp(Nth, "53", 2); break;
         case 3: return strncmp(Nth, "42", 2); break;
@@ -53,78 +71,100 @@ bool check_Nth(ifstream& file, unsigned long long counter, unsigned char format_
 
 };
 
-// using this function for searching and comparing two different values that may tell us about circular rotation block length
-unsigned int find_sectors_amount(ifstream& file, unsigned long long counter, unsigned char format_sample) { // 
+// using this function for searching and comparing two different values that may tell us about circular rotation block length (images)
+unsigned int findSectorsAmount(ifstream& file, unsigned long long counter, unsigned char formatSample) { // 
 
-    char sectors_byte_hex[3] = { 0 };
-    char working_byte[3] = { 0 };
-    string sectors_amount_hex = "";
-    string bytes_amount_hex = "";
-    unsigned int sectors_amount_int = 0;
+    char sectorsByteHex[3] = { 0 };
+    char workingByte[3] = { 0 };
+    string sectorsAmountHex = "";
+    string bytesAmountHex = "";
 
 
     file.seekg(counter + 22);
-    file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-    sprintf_s(sectors_byte_hex, "%02x", format_sample);
-    sectors_amount_hex.append(sectors_byte_hex);
+    file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+    sprintf_s(sectorsByteHex, "%02x", formatSample);
+    sectorsAmountHex.append(sectorsByteHex);
 
     file.seekg(counter + 23);
-    file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-    sprintf_s(sectors_byte_hex, "%02x", format_sample);
-    sectors_amount_hex.append(sectors_byte_hex);
+    file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+    sprintf_s(sectorsByteHex, "%02x", formatSample);
+    sectorsAmountHex.append(sectorsByteHex);
 
     file.seekg(counter + 11);
-    file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-    sprintf_s(working_byte, "%02x", format_sample);
-    bytes_amount_hex.append(working_byte);
+    file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+    sprintf_s(workingByte, "%02x", formatSample);
+    bytesAmountHex.append(workingByte);
     
     file.seekg(counter + 10);
-    file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-    sprintf_s(working_byte, "%02x", format_sample);
-    bytes_amount_hex.append(working_byte);
+    file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+    sprintf_s(workingByte, "%02x", formatSample);
+    bytesAmountHex.append(workingByte);
 
     file.seekg(counter + 9);
-    file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-    sprintf_s(working_byte, "%02x", format_sample);
-    bytes_amount_hex.append(working_byte);
+    file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+    sprintf_s(workingByte, "%02x", formatSample);
+    bytesAmountHex.append(workingByte);
 
     file.seekg(counter + 8);
-    file.read(reinterpret_cast <char*> (&format_sample), sizeof(format_sample));
-    sprintf_s(working_byte, "%02x", format_sample);
-    bytes_amount_hex.append(working_byte);
+    file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
+    sprintf_s(workingByte, "%02x", formatSample);
+    bytesAmountHex.append(workingByte);
 
     file.seekg(counter);
 
-    // checking if both values give us the same result so will not touch incomplete or strange sectors to prevent even further image corruption
-    if ((stoul(bytes_amount_hex, nullptr, 16) / 512) == stoul(sectors_amount_hex, nullptr, 16)) {
-        
-        sectors_amount_int = stoul(sectors_amount_hex, nullptr, 16);
 
+    // checking if both values give us the same result so will not touch incomplete or strange sectors to prevent even further image corruption
+    if ((stoul(bytesAmountHex, nullptr, 16) / 512) == stoul(sectorsAmountHex, nullptr, 16)) {
+        return stoul(sectorsAmountHex, nullptr, 16);
+	}
+    else {
+        return 0;
+    }
+}
+
+// Function to find the number of sectors in the usbc block
+unsigned int findSectorsAmount(const BYTE* sector) {
+    string sectorsAmountHex = "";
+    string bytesAmountHex = "";
+
+	// Extract the sector count (bytes 22-23) in direct order
+    sectorsAmountHex += BufferToHex(&sector[22], 1);
+    sectorsAmountHex += BufferToHex(&sector[23], 1);
+
+	// Extract the byte count (bytes 8-11) in reverse order
+    bytesAmountHex += BufferToHex(&sector[11], 1);
+    bytesAmountHex += BufferToHex(&sector[10], 1);
+    bytesAmountHex += BufferToHex(&sector[9], 1);
+    bytesAmountHex += BufferToHex(&sector[8], 1);
+
+    // Validate and return the sector count
+    if ((stoul(bytesAmountHex, nullptr, 16) / 512) == stoul(sectorsAmountHex, nullptr, 16) && bytesAmountHex != "" && sectorsAmountHex != "") {
+        return stoul(sectorsAmountHex, nullptr, 16);
     }
 
-    return sectors_amount_int;
+    return 0;
 }
 
 
 // using a function to convert our hex into bytes so we wont lose any data
-string convert_to_bytes(string hex_string) {
+string ConvertToBytes(string hexString) {
 
     basic_string<uint8_t> bytes;
 
 
-    for (size_t i = 0; i < hex_string.length(); i += 2)
+    for (size_t i = 0; i < hexString.length(); i += 2)
     {
         uint16_t byte;
         
 
         // Get current pair and store in nextbyte
-        string nextbyte = hex_string.substr(i, 2);
+        string nextByte = hexString.substr(i, 2);
 
         // Put the pair into an istringstream and stream it through std::hex for
         // conversion into an integer value.
         // This will calculate the byte value of your string-represented hex value.
         // converting our bytes into hex values 
-        istringstream(nextbyte) >> hex >> byte;
+        istringstream(nextByte) >> hex >> byte;
 
         // adding our values into our byte array via casting because stream does not work with uint8 directly
         bytes.push_back(static_cast<uint8_t>(byte));
@@ -138,167 +178,158 @@ string convert_to_bytes(string hex_string) {
 
 
 // main code functionality taken outside of main function for logic construction convenience
-int work_with_usbc(ifstream& disc_image_input, ofstream& disc_image_output, string path_string) {
+int WorkWithUsbcImage(ifstream& diskImageInput, ofstream& diskImageOutput) {
 
-    char current_byte[3] = { 0 };
+    char currentByte[3] = { 0 };
 
-    unsigned char char_sample;
-    unsigned long long file_length = 0;
+    unsigned char charSample;
+    unsigned long long fileLength = 0;
     unsigned long long i = 0;
 
-    int usbc_counter = 0;                                              
-    int usbc_rotation_block_length = 0;
-    string usbc_sector = "";
-    string bytes_of_usbc_sector = "";
-    string rotated_sectors = "";
-    string bytes_of_rotated_sectors = "";
+    int usbcCounter = 0;                                              
+    int usbcRotationBlockLength = 0;
+    
+    string usbcSector = "";
+    string bytesOfUsbcSector = "";
+    string rotatedSectors = "";
+    string bytesOfRotatedSectors = "";
 
-    string current_usbc_output_byte = "";
-    string current_rotated_output_byte = "";
-
-    int usbc_output_counter = 0;
-    int rotation_output_counter = 0;
+    //int usbcOutputCounter = 0;
+    //int rotationOutputCounter = 0;
 
 
-    if (disc_image_input.is_open()) {
+    if (diskImageInput.is_open()) {
 
         // moving to the end of file and saving its position as a length for our current file so we could know how much bytes our file has
-        disc_image_input.seekg(0, ios::end);                              
-        file_length = disc_image_input.tellg();
-        disc_image_input.seekg(0, ios::beg);
+        diskImageInput.seekg(0, ios::end);                              
+        fileLength = diskImageInput.tellg();
+        diskImageInput.seekg(0, ios::beg);
 
         // using a cycle to search for usbc
-        while (file_length > i) {                                   
+        while (fileLength > i) {                                   
 
-            disc_image_input.read(reinterpret_cast <char*> (&char_sample), sizeof(char_sample));
-            sprintf_s(current_byte, "%02x", char_sample);
+            diskImageInput.read(reinterpret_cast <char*> (&charSample), sizeof(charSample));
+            sprintf_s(currentByte, "%02x", charSample);
 
             // whole file formatted output inside the console window
             //if (i % 1 == 0) { cout << " "; };                     
             //if (i % 4 == 0) { cout << " "; };
             //if (i % 16 == 0) { cout << endl; };
             //if (i % 512 == 0) { cout << endl; };
-            //cout << current_byte;
-            //disc_image_input.seekg(++i);
+            //cout << currentByte;
+            //diskImageInput.seekg(++i);
 
 
             // checking each each corresponding byte one after anouther to spend less resources on wrong coincidences
-            if (check_Nth(disc_image_input, i, char_sample, 1) == 0) {
-                if (check_Nth(disc_image_input, i, char_sample, 2) == 0) {
-                    if (check_Nth(disc_image_input, i, char_sample, 3) == 0) {
-                        if (check_Nth(disc_image_input, i, char_sample, 4) == 0) {
+            if (Check_Nth(diskImageInput, i, charSample, 1) == 0) {
+                if (Check_Nth(diskImageInput, i, charSample, 2) == 0) {
+                    if (Check_Nth(diskImageInput, i, charSample, 3) == 0) {
+                        if (Check_Nth(diskImageInput, i, charSample, 4) == 0) {
 
-                            usbc_rotation_block_length = find_sectors_amount(disc_image_input, i, char_sample);
+                            usbcRotationBlockLength = findSectorsAmount(diskImageInput, i, charSample);
 
-                            //cout << "\n\n found usbc sector on byte " << i << ", rotation block length = " << usbc_rotation_block_length << "\n";
+                            //cout << "\n\n found usbc sector on byte " << i << ", rotation block length = " << usbcRotationBlockLength << "\n";
 
-                            usbc_sector = "";
-                            rotated_sectors = "";
+                            usbcSector = "";
+                            rotatedSectors = "";
                             
 
-                            for (int usbc_sector_byte = 0; usbc_sector_byte < 512; usbc_sector_byte++) {
-                                disc_image_input.seekg(i + usbc_sector_byte);
-                                disc_image_input.read(reinterpret_cast <char*>(&char_sample), sizeof(char_sample));
+                            for (int usbcSector_byte = 0; usbcSector_byte < 512; usbcSector_byte++) {
+                                diskImageInput.seekg(i + usbcSector_byte);
+                                diskImageInput.read(reinterpret_cast <char*>(&charSample), sizeof(charSample));
                                 
-                                if (usbc_sector_byte == 0) {
-                                    usbc_sector.append("44");
-                                }
-                                else if (usbc_sector_byte == 1) {
-                                    usbc_sector.append("4F");
-                                }
-                                else if (usbc_sector_byte == 2) {
-                                    usbc_sector.append("4E");
-                                }
-                                else if (usbc_sector_byte == 3) {
-                                    usbc_sector.append("45");
-                                }
+                                if (usbcSector_byte == 0) {usbcSector.append("44");}
+                                else if (usbcSector_byte == 1) {usbcSector.append("4F");}
+                                else if (usbcSector_byte == 2) {usbcSector.append("4E");}
+                                else if (usbcSector_byte == 3) {usbcSector.append("45");}
                                 else {
-                                    sprintf_s(current_byte, "%02x", char_sample);
-                                    usbc_sector.append(current_byte);
+                                    sprintf_s(currentByte, "%02x", charSample);
+                                    usbcSector.append(currentByte);
                                 }
 
                             }
-                            disc_image_input.seekg(i);
+                            diskImageInput.seekg(i);
                             
 
-                            for (int rotated_sector_number = 1; rotated_sector_number < usbc_rotation_block_length; rotated_sector_number++) {
-                                for (int rotated_sector_byte = 0; rotated_sector_byte < 512; rotated_sector_byte++) {
-                                    disc_image_input.seekg(i + (rotated_sector_number * 512) + rotated_sector_byte);
-                                    disc_image_input.read(reinterpret_cast <char*>(&char_sample), sizeof(char_sample));
-                                    sprintf_s(current_byte, "%02x", char_sample);
-                                    rotated_sectors.append(current_byte);
+                            for (int rotatedSectorNumber = 1; rotatedSectorNumber < usbcRotationBlockLength; rotatedSectorNumber++) {
+                                for (int rotatedSectorByte = 0; rotatedSectorByte < 512; rotatedSectorByte++) {
+                                    diskImageInput.seekg(i + (rotatedSectorNumber * 512) + rotatedSectorByte);
+                                    diskImageInput.read(reinterpret_cast <char*>(&charSample), sizeof(charSample));
+                                    sprintf_s(currentByte, "%02x", charSample);
+                                    rotatedSectors.append(currentByte);
                                 }
                             }
-                            disc_image_input.seekg(i);
+                            diskImageInput.seekg(i);
 
 
                             // each of sectors console outpu for debugging purposes
                             /*cout << "\n\n usbc sector " << i << " \n\n";
 
-                            for (auto usbc_output_symbol : usbc_sector) { 
+                            for (auto usbcOutputSymbol : usbcSector) { 
                                 
-                                if (usbc_output_counter % 2 == 0) { cout << " "; }; 
-                                if (usbc_output_counter % 8 == 0) { cout << " "; };
-                                if (usbc_output_counter % 64 == 0) { cout << endl; };
-                                if (usbc_output_counter % 1024 == 0) { cout << endl; };
+                                if (usbcOutputCounter % 2 == 0) { cout << " "; }; 
+                                if (usbcOutputCounter % 8 == 0) { cout << " "; };
+                                if (usbcOutputCounter % 64 == 0) { cout << endl; };
+                                if (usbcOutputCounter % 1024 == 0) { cout << endl; };
 
-                                usbc_output_counter++;
+                                usbcOutputCounter++;
 
-                                cout << usbc_output_symbol;
+                                cout << usbcOutputSymbol;
 
                             }
 
                             cout << "\n\n rotation sector " << i << " \n\n";
 
-                            for (auto rotation_output_symbol : rotated_sectors) {
+                            for (auto rotationOutputSymbol : rotatedSectors) {
 
-                                if (rotation_output_counter % 2 == 0) { cout << " "; };
-                                if (rotation_output_counter % 8 == 0) { cout << " "; };
-                                if (rotation_output_counter % 64 == 0) { cout << endl; };
-                                if (rotation_output_counter % 1024 == 0) { cout << endl; };
+                                if (rotationOutputCounter % 2 == 0) { cout << " "; };
+                                if (rotationOutputCounter % 8 == 0) { cout << " "; };
+                                if (rotationOutputCounter % 64 == 0) { cout << endl; };
+                                if (rotationOutputCounter % 1024 == 0) { cout << endl; };
 
-                                rotation_output_counter++;
+                                rotationOutputCounter++;
 
-                                cout << rotation_output_symbol;
+                                cout << rotationOutputSymbol;
 
                             }*/
 
 
-                            bytes_of_usbc_sector = convert_to_bytes(usbc_sector);
-                            bytes_of_rotated_sectors = convert_to_bytes(rotated_sectors);
+                            bytesOfUsbcSector = ConvertToBytes(usbcSector);
+                            bytesOfRotatedSectors = ConvertToBytes(rotatedSectors);
 
-                            usbc_counter++;
+                            usbcCounter++;
                             
 
-                            if (usbc_rotation_block_length > 0) {
-                                disc_image_output.seekp(i);
-                                disc_image_output << bytes_of_rotated_sectors;
+                            if (usbcRotationBlockLength > 0) {
+                                diskImageOutput.seekp(i);
+                                diskImageOutput << bytesOfRotatedSectors;
 
-                                disc_image_output.seekp(i + ((usbc_rotation_block_length - 1) * 512));
-                                disc_image_output << bytes_of_usbc_sector;
+                                diskImageOutput.seekp(i + ((usbcRotationBlockLength - 1) * 512));
+                                diskImageOutput << bytesOfUsbcSector;
                             }
-                            else if (usbc_rotation_block_length == 0) {
-                                disc_image_output.seekp(i);
-                                disc_image_output << bytes_of_usbc_sector;
+                            else if (usbcRotationBlockLength == 0) {
+                                diskImageOutput.seekp(i);
+                                diskImageOutput << bytesOfUsbcSector;
                             }
                             
                           
-                            cout << "\n usbc sector on byte " << i << " with rotation block length of " << usbc_rotation_block_length << " has been rotated\n";
+                            cout << "\n usbc sector on byte " << i << " with rotation block length of " << usbcRotationBlockLength << " has been rotated\n";
 
                             
                             // going to the point after current rotation block to prevent wasting time on searching inside of it
-                            disc_image_input.seekg(i + (usbc_rotation_block_length * (512 + 1)));
+                            diskImageInput.seekg(i + (usbcRotationBlockLength * 512 + 1));
                         }
                     }
+                    else {diskImageInput.seekg(i += 512);}
                 }
+                else {diskImageInput.seekg(i += 512);}
 
             }
-            disc_image_input.seekg(i += 512);
-
+            else {diskImageInput.seekg(i += 512);}
         }
         
 
-        cout << "\n\nTotal USBC counter: " << usbc_counter;
+        cout << "\n\nTotal USBC counter: " << usbcCounter;
 
         
         return 0;
@@ -310,72 +341,284 @@ int work_with_usbc(ifstream& disc_image_input, ofstream& disc_image_output, stri
 
 }
 
+// function to process the disk directly
+void ProcessDisk(const string& diskPath) {
+    wstring wideDiskPath = wstring(diskPath.begin(), diskPath.end());
+
+    HANDLE hDisk = CreateFile(
+        wideDiskPath.c_str(),                   // Physical disk path (e.g., "\\\\.\\PhysicalDrive0")
+        GENERIC_READ | GENERIC_WRITE,           // Access mode
+        FILE_SHARE_READ | FILE_SHARE_WRITE,     // Share mode
+        NULL,                                   // Security attributes
+        OPEN_EXISTING,                          // Open existing disk
+        0,                                      // Flags and attributes
+        NULL                                    // Template file
+    );
+
+    if (hDisk == INVALID_HANDLE_VALUE) {
+        cerr << "Failed to open disk. Error: " << GetLastError() << endl;
+        return;
+    }
+
+    const DWORD sectorSize = 512; // Sector size
+    BYTE* buffer = new BYTE[sectorSize];
+    DWORD bytesRead, bytesWritten;
+    unsigned long long offset = 0;
+
+
+    cout << "Processing disk: " << diskPath << endl << endl;
+
+
+    while (ReadFile(hDisk, buffer, sectorSize, &bytesRead, NULL) && bytesRead > 0) {
+        
+		// Check if the buffer is valid by comparing the number of bytes read to the expected sector size
+        /*if (!ReadFile(hDisk, buffer, sectorSize, &bytesRead, NULL) || bytesRead != sectorSize) {
+            cerr << "Failed to read sector at offset " << offset << ". Skipping..." << endl;
+            offset += sectorSize;
+            continue;
+        }*/
+
+        // Validate the number of bytes read
+        if (bytesRead != sectorSize) {
+            cerr << "Incomplete sector read at offset " << offset << ". Skipping..." << endl;
+            offset += sectorSize;
+            continue;
+        }
+
+        // Debugging: Log the first four bytes
+        /*cout << "Bytes read: " << hex
+            << static_cast<int>(buffer[0]) << " "
+            << static_cast<int>(buffer[1]) << " "
+            << static_cast<int>(buffer[2]) << " "
+            << static_cast<int>(buffer[3]) << endl;*/
+
+
+		/*cout << "Data read from offset " << offset << ": "; // debugging output for checking if we read the right data from each block
+        for (DWORD i = 0; i < min(16, bytesRead); ++i) {
+            printf("%02X ", buffer[i]);
+        }
+        cout << endl;*/
+        
+
+        
+        // Check if the sector starts with "USBC"
+        const BYTE expectedSignature[4] = { 'U', 'S', 'B', 'C' };
+        if (memcmp(buffer, expectedSignature, 4) == 0) {
+
+            cout << "Found 'USBC' at offset: " << offset << " bytes" << endl;
+
+            // Determine the length of the USBC block
+            unsigned int blockLength = findSectorsAmount(buffer);
+
+            /*if (blockLength == 0 || blockLength == 1) {
+                cerr << "Invalid block length at offset " << offset << ". Skipping..." << endl << endl;
+                offset += sectorSize;
+                continue;
+            }*/
+
+            cout << "USBC block length: " << blockLength << " sectors" << endl;
+
+            // Read the entire block into memory
+            BYTE* blockBuffer = new BYTE[blockLength * sectorSize];
+            SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
+            if (!ReadFile(hDisk, blockBuffer, blockLength * sectorSize, &bytesRead, NULL) || bytesRead != blockLength * sectorSize) {
+                cerr << "Failed to read USBC block. Error: " << GetLastError() << endl;
+                delete[] blockBuffer;
+                break;
+            }
+
+            // Change the signature of the rotated block to "DONE"
+            memcpy(blockBuffer, "DONE", 4);
+
+            // Perform circular rotation
+            BYTE* rotatedBuffer = new BYTE[blockLength * sectorSize];
+            memcpy(rotatedBuffer, blockBuffer + sectorSize, (blockLength - 1) * sectorSize); // Shift all sectors up
+            memcpy(rotatedBuffer + (blockLength - 1) * sectorSize, blockBuffer, sectorSize); // Move first sector to the end
+
+
+			// Output the rotated block to the console
+            /*cout << "Rotated data (first 16 bytes): ";
+            for (DWORD i = 0; i < min(16, blockLength * sectorSize); ++i) {
+                printf("%02X ", rotatedBuffer[i]);
+            }
+            cout << endl;*/
+
+
+
+            // Write the rotated block back to the disk
+            SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
+
+            BOOL writeResult = WriteFile(hDisk, rotatedBuffer, blockLength * sectorSize, &bytesWritten, NULL);
+            if (!writeResult || bytesWritten != blockLength * sectorSize) {
+                cerr << "Failed to write rotated block at offset " << offset << ". Error: " << GetLastError() << endl;
+            }
+            else {
+                FlushFileBuffers(hDisk); // Ensure data is written
+                cout << "Successfully wrote rotated block to offset " << offset << " and marked it as 'DONE'" << endl << endl;
+            }
+
+            // Re-read Sectors to Verify Written Data
+            BYTE* verifyBuffer = new BYTE[blockLength * sectorSize];
+            SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
+            DWORD verifyBytesRead = 0;
+            if (!ReadFile(hDisk, verifyBuffer, blockLength * sectorSize, &verifyBytesRead, NULL) ||
+                verifyBytesRead != blockLength * sectorSize) {
+                cerr << "Failed to re-read block for verification at offset " << offset << ". Error: " << GetLastError() << endl;
+            }
+            else {
+                if (memcmp(verifyBuffer, rotatedBuffer, blockLength * sectorSize) != 0) {
+                    cerr << "Verification failed: Data mismatch at offset " << offset << endl << endl;
+                }
+                else {
+                    cout << "Verification succeeded: Data matches at offset " << offset << endl << endl;
+                }
+            }
+            delete[] verifyBuffer;
+
+			// Clear the buffer
+            ZeroMemory(buffer, sectorSize);
+
+            delete[] blockBuffer;
+            delete[] rotatedBuffer;
+
+            // Skip to the end of the block
+            offset += blockLength * sectorSize;
+        }
+        else {
+            //cout << "No USBC signature at offset " << offset << ". Skipping sector." << endl;
+
+            // Move to the next sector
+            offset += sectorSize;
+        }
+
+        // Move the file pointer to the next sector
+        SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
+    }
+
+    if (GetLastError() != ERROR_HANDLE_EOF) {
+        cerr << "Error reading disk. Error: " << GetLastError() << endl;
+    }
+
+    delete[] buffer;
+    CloseHandle(hDisk);
+}
+
+// Function to list available physical drives
+vector<string> ListAvailableDisks() {
+    vector<string> disks;
+    for (int i = 0; i < 10; ++i) { // Check for drives 0-9
+        string diskPath = "\\\\.\\PhysicalDrive" + to_string(i);
+		wstring wideDiskPath = wstring(diskPath.begin(), diskPath.end()); // Convert to wide string for CreateFile function
+
+        HANDLE hDisk = CreateFile(
+            wideDiskPath.c_str(),
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL,
+            OPEN_EXISTING,
+            0,
+            NULL
+        );
+
+        if (hDisk != INVALID_HANDLE_VALUE) {
+            disks.push_back(diskPath);
+            CloseHandle(hDisk);
+        }
+    }
+    return disks;
+}
+
+void ProcessUserSelectedDisk() {
+    vector<string> disks = ListAvailableDisks();
+
+    if (disks.empty()) {
+        cout << "No physical drives found." << endl;
+        return;
+    }
+
+    cout << "Available disks:" << endl;
+    for (size_t i = 0; i < disks.size(); ++i) {
+        cout << i << ". " << disks[i] << endl; // Display disk numbers starting from 0
+    }
+
+    int choice = -1;
+    cout << "Select a disk (0-" << disks.size() - 1 << "): ";
+    cin >> choice;
+
+    if (choice < 0 || choice >= static_cast<int>(disks.size())) {
+        cout << "Invalid choice." << endl;
+        return;
+    }
+
+    string selectedDisk = disks[choice];
+    ProcessDisk(selectedDisk);
+}
+
 
 
 int main() {
+    string diskOrImg;
 
-    //basic_iostream usbc_disc;
-    ifstream path_file_input, disc_image_input; 
-    ofstream disc_image_output;
-    string path, file_is_correct, disc_or_img;
-    int result_code;
-    
-    // opening the path file to get usbc-corrupted file address and name
-    path_file_input.open("Path.txt");                                     
-
-    if (path_file_input.is_open()) {
-        path_file_input >> path;
-        path_file_input.close();
-    }
-    else {
-        cout << "Path.txt not found in the program directory. Please check the file." << endl;
-        return 1;
-    }
-
-
-    // outputting path of the file we're going to work with so the user could doublecheck
-    cout << "\nPath in work: " << path << endl;
-    cout << "\nIs this the correct path? [y/n]: ";
-    cin >> file_is_correct;
+    // asking user is it a disk or an image of a disk so we woudl know how to treat pathed object
+    cout << "Is it a [d]isk or an [i]mage?: ";
+    cin >> diskOrImg;
     cout << "\n";
 
-    
-    if (file_is_correct == "y" || file_is_correct == "Y" || file_is_correct == "yes" || file_is_correct == "Yes" || file_is_correct == "YES") {
 
-        /*// asking user is it a disc or an image of a disc so we woudl know how to treat pathed object
-        cout << "Is it a [d]isc or an [i]mage?: ";
-        cin >> disc_or_img;
+    if (diskOrImg == "d" || diskOrImg == "D" || diskOrImg == "disc" || diskOrImg == "Disc" || diskOrImg == "DISC" || diskOrImg == "disk" || diskOrImg == "Disk" || diskOrImg == "DISK") {
+        ProcessUserSelectedDisk();
+        return 0;
+    }
+    else if (diskOrImg == "i" || diskOrImg == "I" || diskOrImg == "img" || diskOrImg == "Img" || diskOrImg == "IMG" || diskOrImg == "image" || diskOrImg == "Image" || diskOrImg == "IMAGE") {
+        ifstream pathFileInput, diskImageInput; 
+        ofstream diskImageOutput;
+		string path, fileIsCorrect;
+     
+
+        // opening the path file to get usbc-corrupted file address and name
+        pathFileInput.open("Path.txt");
+
+        if (pathFileInput.is_open()) {
+            pathFileInput >> path;
+            pathFileInput.close();
+        }
+        else {
+            cout << "Path.txt not found in the program directory. Please check the file." << endl;
+            return 1;
+        }
+
+
+        // outputting path of the file we're going to work with so the user could doublecheck
+        cout << "\nPath in work: " << path << endl;
+        cout << "\nIs this the correct path? [y/n]: ";
+        cin >> fileIsCorrect;
         cout << "\n";
 
 
-        if (disc_or_img == "d" || disc_or_img == "D" || disc_or_img == "disc" || disc_or_img == "Disc" || disc_or_img == "DISC" || disc_or_img == "disk" || disc_or_img == "Disk" || disc_or_img == "DISK") {
-            disc_image_input.open(path, ios::binary | ios::in);
-            disc_image_output.open(path, ios::binary | ios::out | ios::in);
+        if (fileIsCorrect == "y" || fileIsCorrect == "Y" || fileIsCorrect == "yes" || fileIsCorrect == "Yes" || fileIsCorrect == "YES") {
+            
+            diskImageInput.open(path, ios::binary | ios::in);
+            diskImageOutput.open(path, ios::binary | ios::out | ios::in);
+
+            WorkWithUsbcImage(diskImageInput, diskImageOutput);
+            
+            diskImageOutput.close();        
+            diskImageInput.close();
+            
+            cin.get();
+            
+            return 0;
         }
-        else if (disc_or_img == "i" || disc_or_img == "I" || disc_or_img == "img" || disc_or_img == "Img" || disc_or_img == "IMG" || disc_or_img == "image" || disc_or_img == "Image" || disc_or_img == "IMAGE") {
-            //usbc_disc.sentry(istream);
+        else if (fileIsCorrect == "n" || fileIsCorrect == "N" || fileIsCorrect == "no" || fileIsCorrect == "No" || fileIsCorrect == "NO") {
+            PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
         }
-        else
-        {
 
-        }*/
-
-
-
-        
-        result_code = work_with_usbc(disc_image_input, disc_image_output, path);
-
-
-        cin.get();
-
-
-        disc_image_output.close();
-        disc_image_input.close();
-
-        return result_code;
     }
-    else if (file_is_correct == "n" || file_is_correct == "N" || file_is_correct == "no" || file_is_correct == "No" || file_is_correct == "NO") {
-        PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+    else
+    {
+        cerr << "Source format not supported";
+
+        return 0;
     }
 
 }
