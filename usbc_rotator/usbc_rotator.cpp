@@ -12,13 +12,16 @@ using namespace std;
 string CurrentTime() {
 	// Get the current time
 	time_t now = time(0);
-	tm* localTime = localtime(&now);
+    tm localTime;
+    localtime_s(&localTime, &now);
+
 	// Format the time as a string
 	char buffer[80];
-	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", localTime);
+	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &localTime);
 
 	return string(buffer);
 }
+
 
 // moving to the end of file and saving its position as a length for our current file so we could know how much bytes our file has
 unsigned long long getFileSize(ifstream& file) {
@@ -31,6 +34,7 @@ unsigned long long getFileSize(ifstream& file) {
 	return fileSize;
 }
 
+
 // Function to convert a buffer to a hexadecimal string
 string BufferToHex(const BYTE* buffer, DWORD size) {
     stringstream hexStream;
@@ -40,6 +44,7 @@ string BufferToHex(const BYTE* buffer, DWORD size) {
     return hexStream.str();
 }
 
+
 // Function to convert a hexadecimal string back to a binary buffer
 void HexToBuffer(const string& hexString, BYTE* buffer, DWORD size) {
     for (DWORD i = 0; i < size; ++i) {
@@ -47,6 +52,7 @@ void HexToBuffer(const string& hexString, BYTE* buffer, DWORD size) {
         buffer[i] = static_cast<BYTE>(stoi(byteString, nullptr, 16));
     }
 }
+
 
 // using a function to authomatize comparation process for usbc hex values
 bool Check_Nth(ifstream& file, unsigned long long counter, unsigned char formatSample, int bytePosition) {
@@ -69,6 +75,7 @@ bool Check_Nth(ifstream& file, unsigned long long counter, unsigned char formatS
 
 };
 
+
 char getByteAtOfcet(ifstream& file, unsigned long long counter, int ofcet, unsigned char formatSample) {
     char workingByte[3] = { 0 };
    
@@ -76,6 +83,7 @@ char getByteAtOfcet(ifstream& file, unsigned long long counter, int ofcet, unsig
     file.read(reinterpret_cast <char*> (&formatSample), sizeof(formatSample));
     return sprintf_s(workingByte, "%02x", formatSample);
 }
+
 
 string getBytesSectorAmount(ifstream& file, unsigned long long counter, unsigned char formatSample) {
     string bytesAmountHex = "";
@@ -88,6 +96,7 @@ string getBytesSectorAmount(ifstream& file, unsigned long long counter, unsigned
 	return bytesAmountHex;
 }
 
+
 string getHexSectorAmount(ifstream& file, unsigned long long counter, unsigned char formatSample) {
 	string sectorsAmountHex = "";
 
@@ -96,6 +105,7 @@ string getHexSectorAmount(ifstream& file, unsigned long long counter, unsigned c
 
 	return sectorsAmountHex;
 }
+
 
 // using this function for searching and comparing two different values that may tell us about circular rotation block length (images)
 unsigned int findImageSectorsAmount(ifstream& file, unsigned long long counter, unsigned char formatSample) { // 
@@ -152,6 +162,7 @@ unsigned int findImageSectorsAmount(ifstream& file, unsigned long long counter, 
     }
 }
 
+
 // Function to find the number of sectors in the usbc block
 unsigned int findDiskSectorsAmount(const BYTE* sector) {
     string sectorsAmountHex = "";
@@ -204,6 +215,15 @@ string ConvertToBytes(string hexString) {
     string result(begin(bytes), end(bytes));
 
     return result;
+}
+
+
+uint32_t GetLower32Bits(uint64_t value) {
+	return static_cast<uint32_t>(value & 0xFFFFFFFFLL);
+}
+
+uint32_t GetUpper32Bits(uint64_t value) {
+	return static_cast<uint32_t>((value & 0xFFFFFFFF00000000LL) >> 32);
 }
 
 
@@ -369,180 +389,6 @@ int WorkWithUsbcImage(ifstream& diskImageInput, ofstream& diskImageOutput, ofstr
 
 }
 
-// function to process the disk directly
-void ProcessDisk(const string& diskPath, ofstream& logFile) {
-    wstring wideDiskPath = wstring(diskPath.begin(), diskPath.end());
-
-    HANDLE hDisk = CreateFile(
-        wideDiskPath.c_str(),                   // Physical disk path (e.g., "\\\\.\\PhysicalDrive0")
-        GENERIC_READ | GENERIC_WRITE,           // Access mode
-        FILE_SHARE_READ | FILE_SHARE_WRITE,     // Share mode
-        NULL,                                   // Security attributes
-        OPEN_EXISTING,                          // Open existing disk
-        0,                                      // Flags and attributes
-        NULL                                    // Template file
-    );
-
-    if (hDisk == INVALID_HANDLE_VALUE) {
-        cerr << "Failed to open disk. Error: " << GetLastError() << endl;
-		logFile << "Failed to open disk: " << diskPath << ". Error: " << GetLastError() << endl;
-        return;
-    }
-
-    const DWORD sectorSize = 512; // Sector size
-    BYTE* buffer = new BYTE[sectorSize];
-    DWORD bytesRead, bytesWritten;
-    unsigned long long offset = 0;
-
-
-    cout << "Processing disk: " << diskPath << endl << endl;
-	logFile << "Processing disk: " << diskPath << endl << endl;
-
-
-    while (ReadFile(hDisk, buffer, sectorSize, &bytesRead, NULL) && bytesRead > 0) {
-        
-		// Check if the buffer is valid by comparing the number of bytes read to the expected sector size
-        /*if (!ReadFile(hDisk, buffer, sectorSize, &bytesRead, NULL) || bytesRead != sectorSize) {
-            cerr << "Failed to read sector at offset " << offset << ". Skipping..." << endl;
-            offset += sectorSize;
-            continue;
-        }*/
-
-        // Validate the number of bytes read
-        if (bytesRead != sectorSize) {
-            cerr << "Incomplete sector read at offset " << offset << ". Skipping..." << endl;
-            offset += sectorSize;
-            continue;
-        }
-
-        // Debugging: Log the first four bytes
-        /*cout << "Bytes read: " << hex
-            << static_cast<int>(buffer[0]) << " "
-            << static_cast<int>(buffer[1]) << " "
-            << static_cast<int>(buffer[2]) << " "
-            << static_cast<int>(buffer[3]) << endl;*/
-
-
-		/*cout << "Data read from offset " << offset << ": "; // debugging output for checking if we read the right data from each block
-        for (DWORD i = 0; i < min(16, bytesRead); ++i) {
-            printf("%02X ", buffer[i]);
-        }
-        cout << endl;*/
-        
-
-        
-        // Check if the sector starts with "USBC"
-        const BYTE expectedSignature[4] = { 'U', 'S', 'B', 'C' };
-        if (memcmp(buffer, expectedSignature, 4) == 0) {
-
-            cout << "Found 'USBC' at offset: " << offset << " bytes" << endl;
-			logFile << "Found 'USBC' at offset: " << offset << " bytes" << endl;
-
-            // Determine the length of the USBC block
-            unsigned int blockLength = findDiskSectorsAmount(buffer);
-
-            /*if (blockLength == 0 || blockLength == 1) {
-                cerr << "Invalid block length at offset " << offset << ". Skipping..." << endl << endl;
-                offset += sectorSize;
-                continue;
-            }*/
-
-            cout << "USBC block length: " << blockLength << " sectors" << endl;
-			logFile << "USBC block length: " << blockLength << " sectors" << endl;
-
-            // Read the entire block into memory
-            BYTE* blockBuffer = new BYTE[blockLength * sectorSize];
-            SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
-            if (!ReadFile(hDisk, blockBuffer, blockLength * sectorSize, &bytesRead, NULL) || bytesRead != blockLength * sectorSize) {
-                cerr << "Failed to read USBC block. Error: " << GetLastError() << endl;
-				logFile << "Failed to read USBC block at offset " << offset << ". Error: " << GetLastError() << endl;
-                delete[] blockBuffer;
-                break;
-            }
-
-            // Change the signature of the rotated block to "DONE"
-            memcpy(blockBuffer, "DONE", 4);
-
-            // Perform circular rotation
-            BYTE* rotatedBuffer = new BYTE[blockLength * sectorSize];
-            memcpy(rotatedBuffer, blockBuffer + sectorSize, (blockLength - 1) * sectorSize); // Shift all sectors up
-            memcpy(rotatedBuffer + (blockLength - 1) * sectorSize, blockBuffer, sectorSize); // Move first sector to the end
-
-
-			// Output the rotated block to the console
-            /*cout << "Rotated data (first 16 bytes): ";
-            for (DWORD i = 0; i < min(16, blockLength * sectorSize); ++i) {
-                printf("%02X ", rotatedBuffer[i]);
-            }
-            cout << endl;*/
-
-
-
-            // Write the rotated block back to the disk
-            SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
-
-            BOOL writeResult = WriteFile(hDisk, rotatedBuffer, blockLength * sectorSize, &bytesWritten, NULL);
-            if (!writeResult || bytesWritten != blockLength * sectorSize) {
-                cerr << "Failed to write rotated block at offset " << offset << ". Error: " << GetLastError() << endl;
-				logFile << "Failed to write rotated block at offset " << offset << ". Error: " << GetLastError() << endl;
-            }
-            else {
-                FlushFileBuffers(hDisk); // Ensure data is written
-                cout << "Successfully wrote rotated block to offset " << offset << " and marked it as 'DONE'" << endl << endl;
-				logFile << "Successfully wrote rotated block to offset " << offset << " and marked it as 'DONE'" << endl << endl;
-            }
-
-
-    //        // Re-read Sectors to Verify Written Data
-    //        BYTE* verifyBuffer = new BYTE[blockLength * sectorSize];
-    //        SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
-    //        DWORD verifyBytesRead = 0;
-    //        if (!ReadFile(hDisk, verifyBuffer, blockLength * sectorSize, &verifyBytesRead, NULL) ||
-    //            verifyBytesRead != blockLength * sectorSize) {
-    //            cerr << "Failed to re-read block for verification at offset " << offset << ". Error: " << GetLastError() << endl;
-				//logFile << "Failed to re-read block for verification at offset " << offset << ". Error: " << GetLastError() << endl;
-    //        }
-    //        else {
-    //            if (memcmp(verifyBuffer, rotatedBuffer, blockLength * sectorSize) != 0) {
-    //                cerr << "Verification failed: Data mismatch at offset " << offset << endl << endl;
-				//	logFile << "Verification failed: Data mismatch at offset " << offset << endl << endl;
-    //            }
-    //            else {
-    //                cout << "Verification succeeded: Data matches at offset " << offset << endl << endl;
-				//	logFile << "Verification succeeded: Data matches at offset " << offset << endl << endl;
-    //            }
-    //        }
-    //        delete[] verifyBuffer;
-
-
-			// Clear the buffer
-            ZeroMemory(buffer, sectorSize);
-
-            delete[] blockBuffer;
-            delete[] rotatedBuffer;
-
-            // Skip to the end of the block
-            offset += blockLength * sectorSize;
-        }
-        else {
-            //cout << "No USBC signature at offset " << offset << ". Skipping sector." << endl;
-
-            // Move to the next sector
-            offset += sectorSize;
-        }
-
-        // Move the file pointer to the next sector
-        SetFilePointer(hDisk, offset, NULL, FILE_BEGIN);
-    }
-
-    if (GetLastError() != ERROR_HANDLE_EOF) {
-        cerr << "Error reading disk. Error: " << GetLastError() << endl;
-		logFile << "Error reading disk: " << GetLastError() << endl;
-    }
-
-    delete[] buffer;
-    CloseHandle(hDisk);
-}
 
 // Function to list available physical drives
 vector<string> ListAvailableDisks() {
@@ -569,35 +415,245 @@ vector<string> ListAvailableDisks() {
     return disks;
 }
 
+
+// function to process the disk directly
+void ProcessDisk(const string& diskPath, ofstream& logFile) {
+    wstring wideDiskPath = wstring(diskPath.begin(), diskPath.end());
+
+    HANDLE hDisk = CreateFile(
+        wideDiskPath.c_str(),                   // Physical disk path (e.g., "\\\\.\\PhysicalDrive0")
+        GENERIC_READ | GENERIC_WRITE,           // Access mode
+        FILE_SHARE_READ | FILE_SHARE_WRITE,     // Share mode
+        NULL,                                   // Security attributes
+        OPEN_EXISTING,                          // Open existing disk
+        0,                                      // Flags and attributes
+        NULL                                    // Template file
+    );
+
+    if (hDisk == INVALID_HANDLE_VALUE) {
+        cerr << endl << "Failed to open disk. Error: " << GetLastError() << endl;
+        logFile << endl << "Failed to open disk: " << diskPath << ". Error: " << GetLastError() << endl;
+        return;
+    }
+
+    const DWORD sectorSize = 512; // Sector size
+    BYTE* buffer = new BYTE[sectorSize];
+    DWORD bytesRead, bytesWritten;
+
+    unsigned long long offset = 0;
+    long offsetLow32 = 0;
+    long offsetHigh32 = 0;
+    
+
+    cout << endl << "Processing disk: " << diskPath << endl << endl;
+    logFile << endl << "Processing disk: " << diskPath << endl << endl;
+
+
+    // Get the total disk size to set a clear loop boundary
+    LARGE_INTEGER diskSize;
+    GetFileSizeEx(hDisk, &diskSize);
+
+
+    while (offset < static_cast<unsigned long long>(diskSize.QuadPart)) {
+    // while (ReadFile(hDisk, buffer, sectorSize, &bytesRead, NULL) && bytesRead > 0) {
+        
+		// Move the file pointer to the current offset
+		offsetLow32 = GetLower32Bits(offset);
+		offsetHigh32 = GetUpper32Bits(offset);
+        SetFilePointer(hDisk, offsetLow32, &offsetHigh32, FILE_BEGIN);
+    
+        // Attempt to read the current sector
+        if (!ReadFile(hDisk, buffer, sectorSize, &bytesRead, NULL) || bytesRead != sectorSize) {
+            // Handle read error or end of file
+            
+            cerr << endl << "Failed to read sector at offset " << offset << ". " << endl << endl;
+            logFile << endl << "Failed to read sector at offset " << offset << ". " << endl << endl;
+
+            offset += sectorSize;
+            break;
+        }
+
+
+        // Debugging: Log the first four bytes
+        /*cout << "Bytes read from offset " << offset << "are " << hex
+        << static_cast<int>(buffer[0]) << " "
+        << static_cast<int>(buffer[1]) << " "
+        << static_cast<int>(buffer[2]) << " "
+        << static_cast<int>(buffer[3]) << endl;*/
+        
+        /*logFile << "Bytes read from offset " << offset << " are " << hex
+        << static_cast<int>(buffer[0]) << " "
+        << static_cast<int>(buffer[1]) << " "
+        << static_cast<int>(buffer[2]) << " "
+        << static_cast<int>(buffer[3]) << endl;*/
+
+
+        /*cout << "Data read from offset " << offset << ": "; // debugging output for checking if we read the right data from each block
+        for (DWORD i = 0; i < min(16, bytesRead); ++i) {
+            printf("%02X ", buffer[i]);
+        }
+        cout << endl;*/
+
+
+
+        // Check if the sector starts with "USBC"
+        const BYTE expectedSignature[4] = { 'U', 'S', 'B', 'C' };
+        if (memcmp(buffer, expectedSignature, 4) == 0) {
+
+            cout << "Found 'USBC' at offset: " << offset << " bytes" << endl;
+            logFile << "Found 'USBC' at offset: " << offset << " bytes" << endl;
+
+            // Determine the length of the USBC block
+            unsigned int blockLength = findDiskSectorsAmount(buffer);
+
+            /*if (blockLength == 0 || blockLength == 1) {
+                cerr << "Invalid block length at offset " << offset << ". Skipping..." << endl << endl;
+                offset += sectorSize;
+                continue;
+            }*/
+
+            cout << "USBC block length: " << blockLength << " sectors" << endl;
+            logFile << "USBC block length: " << blockLength << " sectors" << endl;
+
+            // Read the entire block into memory
+            BYTE* blockBuffer = new BYTE[blockLength * sectorSize];
+
+
+            offsetLow32 = GetLower32Bits(offset);
+            offsetHigh32 = GetUpper32Bits(offset);
+            SetFilePointer(hDisk, offsetLow32, &offsetHigh32, FILE_BEGIN);
+
+
+            if (!ReadFile(hDisk, blockBuffer, blockLength * sectorSize, &bytesRead, NULL) || bytesRead != blockLength * sectorSize) {
+                cout << "Failed to read USBC block. Error: " << GetLastError() << endl;
+                cerr << "Failed to read USBC block. Error: " << GetLastError() << endl;
+                logFile << "Failed to read USBC block at offset " << offset << ". Error: " << GetLastError() << endl;
+                delete[] blockBuffer;
+                continue;
+            }
+
+            // Change the signature of the rotated block to "DONE"
+            memcpy(blockBuffer, "DONE", 4);
+
+            // Perform circular rotation
+            BYTE* rotatedBuffer = new BYTE[blockLength * sectorSize];
+            memcpy(rotatedBuffer, blockBuffer + sectorSize, (blockLength - 1) * sectorSize); // Shift all sectors up
+            memcpy(rotatedBuffer + (blockLength - 1) * sectorSize, blockBuffer, sectorSize); // Move first sector to the end
+
+
+            // Output the rotated block to the console
+            /*cout << "Rotated data (first 16 bytes): ";
+            for (DWORD i = 0; i < min(16, blockLength * sectorSize); ++i) {
+                printf("%02X ", rotatedBuffer[i]);
+            }
+            cout << endl;*/
+
+
+
+            // Write the rotated block back to the disk
+            offsetLow32 = GetLower32Bits(offset);
+            offsetHigh32 = GetUpper32Bits(offset);
+            SetFilePointer(hDisk, offsetLow32, &offsetHigh32, FILE_BEGIN);
+
+
+            BOOL writeResult = WriteFile(hDisk, rotatedBuffer, blockLength * sectorSize, &bytesWritten, NULL);
+            if (!writeResult || bytesWritten != blockLength * sectorSize) {
+                cerr << "Failed to write rotated block at offset " << offset << ". Error: " << GetLastError() << endl;
+                logFile << "Failed to write rotated block at offset " << offset << ". Error: " << GetLastError() << endl;
+            }
+            else {
+                FlushFileBuffers(hDisk); // Ensure data is written
+                cout << "Successfully wrote rotated block to offset " << offset << " and marked it as 'DONE'" << endl << endl;
+                logFile << "Successfully wrote rotated block to offset " << offset << " and marked it as 'DONE'" << endl << endl;
+            }
+
+
+            //        // Re-read Sectors to Verify Written Data
+            //        BYTE* verifyBuffer = new BYTE[blockLength * sectorSize];
+            // 
+            //        offsetLow32 = GetLower32Bits(offset);
+            //        offsetHigh32 = GetUpper32Bits(offset);
+            //        SetFilePointer(hDisk, offsetLow32, &offsetHigh32, FILE_BEGIN);
+
+            //        DWORD verifyBytesRead = 0;
+            //        if (!ReadFile(hDisk, verifyBuffer, blockLength * sectorSize, &verifyBytesRead, NULL) ||
+            //            verifyBytesRead != blockLength * sectorSize) {
+            //            cerr << "Failed to re-read block for verification at offset " << offset << ". Error: " << GetLastError() << endl;
+                        //logFile << "Failed to re-read block for verification at offset " << offset << ". Error: " << GetLastError() << endl;
+            //        }
+            //        else {
+            //            if (memcmp(verifyBuffer, rotatedBuffer, blockLength * sectorSize) != 0) {
+            //                cerr << "Verification failed: Data mismatch at offset " << offset << endl << endl;
+                        //	logFile << "Verification failed: Data mismatch at offset " << offset << endl << endl;
+            //            }
+            //            else {
+            //                cout << "Verification succeeded: Data matches at offset " << offset << endl << endl;
+                        //	logFile << "Verification succeeded: Data matches at offset " << offset << endl << endl;
+            //            }
+            //        }
+            //        delete[] verifyBuffer;
+
+
+                    // Clear the buffer
+            ZeroMemory(buffer, sectorSize);
+
+            delete[] blockBuffer;
+            delete[] rotatedBuffer;
+
+            // Skip to the end of the block
+            offset += blockLength * sectorSize;
+        }
+        else {
+            //cout << "No USBC signature at offset " << offset << ". Skipping sector." << endl;
+
+            // Move to the next sector
+            offset += sectorSize;
+        }
+
+        // Move the file pointer to the next sector
+        offsetLow32 = GetLower32Bits(offset);
+        offsetHigh32 = GetUpper32Bits(offset);
+        SetFilePointer(hDisk, offsetLow32, &offsetHigh32, FILE_BEGIN);
+    }
+
+    if (GetLastError() != ERROR_HANDLE_EOF) {
+        cerr << "Error reading disk. Error: " << GetLastError() << endl;
+        logFile << "Error reading disk: " << GetLastError() << endl;
+    }
+
+    delete[] buffer;
+    CloseHandle(hDisk);
+}
+
+
 void ProcessUserSelectedDisk(ofstream& logFile) {
     vector<string> disks = ListAvailableDisks();
 
     if (disks.empty()) {
         cout << "No physical drives found." << endl;
-		logFile << "No physical drives found." << endl;
+        logFile << "No physical drives found." << endl;
         return;
     }
-
+    
     cout << "Available disks:" << endl;
     for (size_t i = 0; i < disks.size(); ++i) {
         cout << i << ". " << disks[i] << endl; // Display disk numbers starting from 0
     }
 
     int choice = -1;
-    cout << "Select a disk (0-" << disks.size() - 1 << "): ";
+    cout << endl << "Select a disk (0-" << disks.size() - 1 << "): ";
     cin >> choice;
 
     if (choice < 0 || choice >= static_cast<int>(disks.size())) {
         cout << "Invalid choice." << endl;
-		logFile << "Invalid disk choice." << endl;
+        logFile << "Invalid disk choice." << endl;
         return;
     }
 
     string selectedDisk = disks[choice];
-	logFile << "Selected disk: " << selectedDisk << endl;
+    logFile << "Selected disk: " << selectedDisk << endl;
     ProcessDisk(selectedDisk, logFile);
 }
-
 
 
 int main() {
@@ -626,6 +682,7 @@ int main() {
         if (logFile.is_open()) { logFile.close(); }
 
         return 0;
+		getchar();
     }
     else if (diskOrImg == "i" || diskOrImg == "I" || diskOrImg == "img" || diskOrImg == "Img" || diskOrImg == "IMG" || diskOrImg == "image" || diskOrImg == "Image" || diskOrImg == "IMAGE") {
         ifstream pathFileInput, diskImageInput; 
@@ -646,7 +703,8 @@ int main() {
 			logFile << "Path.txt not found in the program directory." << endl;
             if (logFile.is_open()) {logFile.close();}
 
-            return 1;
+            return 0;
+			getchar();
         }
 
 
@@ -674,13 +732,16 @@ int main() {
             if (logFile.is_open()) { logFile.close(); }
 
             return 0;
+            getchar();
         }
         else if (fileIsCorrect == "n" || fileIsCorrect == "N" || fileIsCorrect == "no" || fileIsCorrect == "No" || fileIsCorrect == "NO") {
             
 			logFile << "Wrong path." << path << endl;
             if (logFile.is_open()) { logFile.close(); }
             
-            PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+            return 0;
+            getchar();
+            //PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
         }
 
     }
@@ -691,6 +752,7 @@ int main() {
         if (logFile.is_open()) { logFile.close(); }
 
         return 0;
+		getchar();
     }
 
 }
